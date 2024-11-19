@@ -16,6 +16,12 @@ import pandas as pd
 # print("Translated:", translated.text)
 import re
 
+st.set_page_config(
+    page_title="옥히나이키",
+    page_icon="🚩",
+    layout="wide"
+)
+
 st.header("악덕사장 지현히씨🐷를 위한 재능기부")
 st.divider()
 
@@ -88,7 +94,7 @@ if st.session_state['submitted']:
 
             # Pandas 데이터프레임으로 변환
             df = pd.DataFrame(filtered_data)
-            st.dataframe(df)
+            st.data_editor(df)
             
 
 
