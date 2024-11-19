@@ -43,25 +43,52 @@ if st.session_state['submitted']:
         uploaded_file = st.file_uploader(" ")
         if uploaded_file is not None:
             uploaded_df = pd.read_csv(uploaded_file)
-            st.write(uploaded_df)
             filtered_df = \
                 uploaded_df[uploaded_df["경험 코멘트"].notna()].loc[:, ["조사 실행 날짜", "서비스 일자", "방문 시간", "등록 번호", "거래 번호", "경험 코멘트"]]
             filtered_df[["등록 번호", "거래 번호"]] = filtered_df[["등록 번호", "거래 번호"]].astype(int)
             filtered_df[["조사 실행 날짜", "서비스 일자", "방문 시간", "경험 코멘트"]] = \
                 filtered_df[["조사 실행 날짜", "서비스 일자", "방문 시간", "경험 코멘트"]].astype(str)
             
+            st.write(filtered_df)
             names = entry_editor.iloc[:, -1]
+            is_included_dict = dict()
             for cdx, comment_row in filtered_df.iterrows():
                 comment = comment_row["경험 코멘트"]
                 for edx, entry_row in entry_editor.iterrows():
                     name = entry_row['NAME']
+                    entry_row_dict = dict()
+                    is_included = False
                     if not (len(name) < 3):
-                        if (name in comment) or (name[1:] in comment):
-                            st.write(f"{cdx} : {comment_row.to_dict()} -> {edx} : {entry_row.to_dict()}")
+                        if (name in comment) or (name[-2:] in comment):
+                            is_included = True
+                            # st.write(f"{cdx} : {comment_row.to_dict()} -> {edx} : {entry_row.to_dict()}")
                     else:
                         if (name in comment):
-                            st.write(f"{cdx} : {comment_row.to_dict()} -> {edx} : {entry_row.to_dict()}")
-                    
+                            is_included = True
+                            # st.write(f"{cdx} : {comment_row.to_dict()} -> {edx} : {entry_row.to_dict()}")
+                            
+                    if cdx not in is_included_dict:
+                        is_included_dict[cdx] = {}
+                    if "entry_datas" not in is_included_dict[cdx]:
+                        is_included_dict[cdx]["entry_datas"] = []
+                    is_included_dict[cdx].update(comment_row.to_dict())
+                            
+                    if is_included:
+                        entry_row_dict["EDX"] = edx
+                        entry_row_dict.update(entry_row.to_dict())
+                        
+                        is_included_dict[cdx]["entry_datas"].append(entry_row_dict)
+
+            st.write(is_included_dict)
+            
+            filtered_data = []
+            for key, value in is_included_dict.items():
+                temp_dict = {k: v for k, v in value.items() if k != "entry_datas"}
+                filtered_data.append(temp_dict)
+
+            # Pandas 데이터프레임으로 변환
+            df = pd.DataFrame(filtered_data)
+            st.dataframe(df)
             
 
 
