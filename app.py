@@ -83,7 +83,7 @@ if st.session_state['submitted']:
             
             filtered_data = []
             for key, value in is_included_dict.items():
-                temp_dict = {k: v for k, v in value.items() if k != "entry_datas"}
+                temp_dict = {k: v for k, v in value.items()}
                 filtered_data.append(temp_dict)
 
             # Pandas 데이터프레임으로 변환
