@@ -46,8 +46,11 @@ with st.expander("1️⃣ **명단확인**", expanded=True):
 
 if st.session_state['submitted']:
     with st.expander("2️⃣ **파일 업로드**", expanded=True):
+        st.divider()
         uploaded_file = st.file_uploader(" ")
         if uploaded_file is not None:
+            st.write(" ")
+            st.write(" ")
             uploaded_df = pd.read_csv(uploaded_file)
             filtered_df = \
                 uploaded_df[uploaded_df["경험 코멘트"].notna()].loc[:, ["조사 실행 날짜", "서비스 일자", "방문 시간", "등록 번호", "거래 번호", "경험 코멘트"]]
@@ -55,7 +58,7 @@ if st.session_state['submitted']:
             filtered_df[["조사 실행 날짜", "서비스 일자", "방문 시간", "경험 코멘트"]] = \
                 filtered_df[["조사 실행 날짜", "서비스 일자", "방문 시간", "경험 코멘트"]].astype(str)
             
-            st.write(filtered_df)
+            # st.write(filtered_df)
             names = entry_editor.iloc[:, -1]
             is_included_dict = dict()
             for cdx, comment_row in filtered_df.iterrows():
@@ -85,8 +88,9 @@ if st.session_state['submitted']:
                         
                         is_included_dict[cdx]["entry_datas"].append(entry_row_dict)
 
-            st.write(is_included_dict)
+            # st.write(is_included_dict)
             
+            ##### 표가 아니라 container, columns로 하나하나 출력하고 entry_datas를 muitiselect로 구성하고 세션키_n 으로 저장 한 후 세션에서 개수 체크해야할 듯
             filtered_data = []
             for key, value in is_included_dict.items():
                 temp_dict = {k: v for k, v in value.items()}
