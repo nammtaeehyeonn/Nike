@@ -14,9 +14,8 @@ jsonschema-specifications==2024.10.1
 markdown-it-py==3.0.0
 MarkupSafe==3.0.2
 mdurl==0.1.2
-narwhals==1.13.5
+narwhals==1.14.1
 numpy==2.0.2
-opencv-python==4.10.0.84
 packaging==24.2
 pandas==2.2.3
 pillow==11.0.0
@@ -24,7 +23,6 @@ protobuf==5.28.3
 pyarrow==18.0.0
 pydeck==0.9.1
 Pygments==2.18.0
-pytesseract==0.3.13
 python-dateutil==2.9.0.post0
 pytz==2024.2
 referencing==0.35.1
@@ -41,4 +39,3 @@ typing_extensions==4.12.2
 tzdata==2024.2
 urllib3==2.2.3
 watchdog==6.0.0
-opencv-python-headless
