@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+from st_aggrid import AgGrid, GridOptionsBuilder
 from collections import Counter
 import re
 
@@ -36,104 +37,156 @@ with st.expander("1️⃣ **명단확인**", expanded=True):
         # st.session_state['entryCheckExpanded'] = False
         st.rerun()
 
-if st.session_state['submitted']:
-    with st.expander("2️⃣ **파일 업로드**", expanded=True):
-        st.divider()
-        uploaded_file = st.file_uploader(" ")
-        if uploaded_file is not None:
-            st.write(" ")
-            st.write(" ")
-            uploaded_df = pd.read_csv(uploaded_file)
-            filtered_df = \
-                uploaded_df[uploaded_df["경험 코멘트"].notna()].loc[:, ["조사 실행 날짜", "서비스 일자", "방문 시간", "등록 번호", "거래 번호", "경험 코멘트"]]
-            filtered_df[["등록 번호", "거래 번호"]] = filtered_df[["등록 번호", "거래 번호"]].astype(int)
-            filtered_df[["조사 실행 날짜", "서비스 일자", "방문 시간", "경험 코멘트"]] = \
-                filtered_df[["조사 실행 날짜", "서비스 일자", "방문 시간", "경험 코멘트"]].astype(str)
-            
-            filtered_df = filtered_df.sort_values(["거래 번호"])
-            # st.write(filtered_df)
-            names = entry_editor.iloc[:, -1]
-            is_included_dict = dict()
-            for cdx, comment_row in filtered_df.iterrows():
-                comment = comment_row["경험 코멘트"]
-                for edx, entry_row in entry_editor.iterrows():
-                    name = entry_row['NAME']
-                    entry_row_dict = dict()
-                    is_included = False
-                    if not (len(name) < 3):
-                        if (name in comment) or (name[-2:] in comment):
-                            is_included = True
-                            # st.write(f"{cdx} : {comment_row.to_dict()} -> {edx} : {entry_row.to_dict()}")
-                    else:
-                        if (name in comment):
-                            is_included = True
-                            # st.write(f"{cdx} : {comment_row.to_dict()} -> {edx} : {entry_row.to_dict()}")
-                            
-                    if cdx not in is_included_dict:
-                        is_included_dict[cdx] = {}
-                    if "칭찬" not in is_included_dict[cdx]:
-                        is_included_dict[cdx]["칭찬"] = []
-                    is_included_dict[cdx].update(comment_row.to_dict())
-                            
-                    if is_included:
-                        entry_row_dict["EDX"] = str(edx)
-                        entry_row_dict.update(entry_row.to_dict())
-                        
-                        # is_included_dict[cdx]["칭찬"].append(entry_row_dict)
-                        is_included_dict[cdx]["칭찬"].append("/".join(list(entry_row_dict.values())))
 
-            # st.write(is_included_dict)
-            
-            ##### 표가 아니라 container, columns로 하나하나 출력하고 entry_datas를 muitiselect로 구성하고 세션키_n 으로 저장 한 후 세션에서 개수 체크해야할 듯
-            filtered_data = []
-            for key, value in is_included_dict.items():
-                temp_dict = {k: v for k, v in value.items()}
-                filtered_data.append(temp_dict)
+all_members = [""] + [f"[{idx+1}] " + " - ".join(map(str, row)) for idx, row in entry_editor.iterrows()]
 
-            # Pandas 데이터프레임으로 변환
-            df = pd.DataFrame(filtered_data)[["조사 실행 날짜", "서비스 일자", "방문 시간", "등록 번호", "거래 번호", "경험 코멘트", "칭찬"]]
-            # df["칭찬"] = df["칭찬"].astype(str)
-            
-            duplicated_transaction_nums = find_duplicates(df["거래 번호"])
-            # df.loc[df[len(df["칭찬"]) == 0], "칭찬"] = np.nan
-            df.loc[df["거래 번호"].isin(duplicated_transaction_nums), "칭찬"] = "거래 번호 중복"
-            
-              
-            
-            
-            df_col, _, _ = st.columns([0.7, 0.2, 0.1])
-            with df_col:
-                st.data_editor(df, use_container_width=True)
+# if st.session_state['submitted']:
+#     with st.expander("2️⃣ **파일 업로드**", expanded=True):
+#         st.divider()
+#         uploaded_file = st.file_uploader(" ")
+#         if uploaded_file is not None:
+st.write(" ")
+st.write(" ")
+# uploaded_df = pd.read_csv(uploaded_file)
+uploaded_df = pd.read_csv("./설문조사 세부 정보 - 2023년 신규 설문조사 (2).csv")
+filtered_df = \
+    uploaded_df[uploaded_df["경험 코멘트"].notna()].loc[:, ["조사 실행 날짜", "서비스 일자", "방문 시간", "등록 번호", "거래 번호", "경험 코멘트"]]
+filtered_df[["등록 번호", "거래 번호"]] = filtered_df[["등록 번호", "거래 번호"]].astype(int)
+filtered_df[["조사 실행 날짜", "서비스 일자", "방문 시간", "경험 코멘트"]] = \
+    filtered_df[["조사 실행 날짜", "서비스 일자", "방문 시간", "경험 코멘트"]].astype(str)
+
+filtered_df = filtered_df.sort_values(["거래 번호"])
+# st.write(filtered_df)
+names = entry_editor.iloc[:, -1]
+is_included_dict = dict()
+for cdx, comment_row in filtered_df.iterrows():
+    comment = comment_row["경험 코멘트"]
+    # for edx, entry_row in entry_editor.iterrows():
+    for edx, entry_row in enumerate(all_members):
+        if edx ==0:
+            continue
+        # name = entry_row['NAME']
+        name = entry_row.split(" - ")[-1]
+        entry_row_dict = dict()
+        is_included = False
+        if not (len(name) < 3):
+            if (name in comment) or (name[-2:] in comment):
+                is_included = True
+                # st.write(f"{cdx} : {comment_row.to_dict()} -> {edx} : {entry_row.to_dict()}")
+        else:
+            if (name in comment):
+                is_included = True
+                # st.write(f"{cdx} : {comment_row.to_dict()} -> {edx} : {entry_row.to_dict()}")
                 
-
-
-
+        if cdx not in is_included_dict:
+            is_included_dict[cdx] = {}
+        if "칭찬" not in is_included_dict[cdx]:
+            # is_included_dict[cdx]["칭찬"] = []
+            is_included_dict[cdx]["칭찬"] = ""
+        is_included_dict[cdx].update(comment_row.to_dict())
                 
-                
-                
-            # with vision_col:
-            #     rows = [st.columns(7) for i in range(len(df))]
-            #     for rdx, row in enumerate(rows):
-            #         for cdx, col in enumerate(row):
-            #             tile = col.container(border=True)
-            #             tile.write(df.iloc[rdx, cdx])
+        if is_included:
+            # entry_row_dict["EDX"] = str(edx)
+            # entry_row_dict.update(entry_row.to_dict())
+            
+            # is_included_dict[cdx]["칭찬"].append(entry_row_dict)
+            # is_included_dict[cdx]["칭찬"].append(" \r ".join(list(entry_row_dict.values())))
+            # is_included_dict[cdx]["칭찬"].append(entry_row + "\r")
+            is_included_dict[cdx]["칭찬"] += f"{entry_row} / "
+    try:
+        if is_included_dict[cdx]["칭찬"][-3:] == " / ":
+            is_included_dict[cdx]["칭찬"] = is_included_dict[cdx]["칭찬"][:-3]
+    except:
+        pass
+# st.write(is_included_dict)
 
 
+##### 표가 아니라 container, columns로 하나하나 출력하고 entry_datas를 muitiselect로 구성하고 세션키_n 으로 저장 한 후 세션에서 개수 체크해야할 듯
+filtered_data = []
+for key, value in is_included_dict.items():
+    temp_dict = {k: v for k, v in value.items()}
+    filtered_data.append(temp_dict)
+print(is_included_dict)
 
-##################################################################################################
-# st.session_state['submitted'] = False
-# st.session_state['entryCheckExpanded'] = True
-# st.session_state['fileUploadExpanded'] = True
-# 예제 데이터프레임 생성
-# data = {
-#     "Column 1": ["A", "B", "C", "D", "E", "F", "G", "H"],
-#     "Column 2": [1, 2, 3, 4, 5, 6, 7, 8],
-#     "Column 3": ["X", "Y", "Z", "W", "V", "U", "T", "S"],
-#     "Column 4": ["Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Eta", "Theta"],
-#     "Column 5": [True, False, True, False, True, False, True, False],
-#     "Column 6": ["😀", "😎", "🎉", "🔥", "💡", "💻", "📚", "🌟"],
-# }
-# df = pd.DataFrame(data)
+df = pd.DataFrame(filtered_data)[["조사 실행 날짜", "서비스 일자", "방문 시간", "등록 번호", "거래 번호", "경험 코멘트", "칭찬"]]
+gb = GridOptionsBuilder.from_dataframe(df)
 
-# st.dataframe(df)
+# gb.configure_column("경험 코멘트", 
+#                     width=400, 
+#                     minWidth=200, 
+#                     maxWidth=800,
+#                     # cellStyle={"white-space": "normal", "line-height": "1.5"},
+#                     # autoHeight=True,  # 높이를 내용에 맞게 조정
+#                     )
+gb.configure_grid_options(
+    autoSizeStrategy={
+        "type": "fitGridWidth",  # 그리드 너비에 맞추는 전략
+        "defaultMinWidth": 100,  # 기본 최소 너비
+        "columnLimits": [
+            {"colId": "조사 실행 날짜", "minWidth": 80, "maxWidth": 150},
+            {"colId": "서비스 일자", "minWidth": 80, "maxWidth": 150},
+            {"colId": "방문 시간", "minWidth": 80, "maxWidth": 150},
+            {"colId": "등록 번호", "minWidth": 80, "maxWidth": 150},
+            {"colId": "거래 번호", "minWidth": 80, "maxWidth": 150},
+            {"colId": "경험 코멘트", "minWidth": 300},
+            {"colId": "칭찬", "Width": 200}
+        ]
+    }
+)
+gb.configure_default_column(
+    filterable=False,  # 필터 비활성화
+    sorteable =False,
+    cellStyle={'textAlign': 'center'},  # 셀 내용 중앙 정렬
+    headerStyle={'textAlign': 'center'},  # 헤더 내용 중앙 정렬
+    
+    autoSizeColumns=True
+)
+gb.configure_column(
+    "경험 코멘트",
+    cellStyle={"white-space": "normal", "line-height": "1.5"},
+    autoHeight=True,  # 높이를 내용에 맞게 조정
+)
+gb.configure_column("칭찬", 
+                    editable=True, 
+                    cellEditor='agSelectCellEditor', 
+                    cellEditorParams={'values': all_members },
+                    cellStyle={"white-space": "normal", "line-height": "1.5"},
+                    autoHeight=True,  # 높이를 내용에 맞게 조정
+                    ) 
 
+
+grid_options = gb.build()
+
+AgGrid(
+    df,
+    gridOptions=grid_options,
+    theme="alpine",  # 테마
+    enable_enterprise_modules=False,
+    height=600,  # 테이블 높이 (픽셀)
+    allow_unsafe_jscode=True,  # HTML 사용 허용
+)
+
+################################################################################################
+
+# html_table = df.to_html(index=False, escape=False)
+
+# # HTML 스타일 추가
+# styled_html = f"""
+# <style>
+#     table {{
+#         width: 80%;
+#         border-collapse: collapse;
+#     }}
+#     th, td {{
+#         border: 1px solid #ddd;
+#         text-align: center;
+#         padding: 8px;
+#     }}
+#     th {{
+#         background-color: #f2f2f2;
+#     }}
+# </style>
+# {html_table}
+# """
+
+# st.markdown(styled_html, unsafe_allow_html=True)
