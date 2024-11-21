@@ -1,20 +1,12 @@
 import streamlit as st
 import pandas as pd
-# from googletrans import Translator
-
-# # Translator 객체 생성
-# translator = Translator()
-
-# # 영어 문자열
-# english_text = "Young lim"
-
-# # 영어를 한글로 번역
-# translated = translator.translate(english_text, src='en', dest='ko')
-
-# # 결과 출력
-# print("Original:", english_text)
-# print("Translated:", translated.text)
+import numpy as np
+from collections import Counter
 import re
+
+def find_duplicates(lst):
+    counts = Counter(lst)
+    return [item for item, count in counts.items() if count > 1]
 
 st.set_page_config(
     page_title="옥히나이키",
@@ -58,6 +50,7 @@ if st.session_state['submitted']:
             filtered_df[["조사 실행 날짜", "서비스 일자", "방문 시간", "경험 코멘트"]] = \
                 filtered_df[["조사 실행 날짜", "서비스 일자", "방문 시간", "경험 코멘트"]].astype(str)
             
+            filtered_df = filtered_df.sort_values(["거래 번호"])
             # st.write(filtered_df)
             names = entry_editor.iloc[:, -1]
             is_included_dict = dict()
@@ -78,15 +71,16 @@ if st.session_state['submitted']:
                             
                     if cdx not in is_included_dict:
                         is_included_dict[cdx] = {}
-                    if "entry_datas" not in is_included_dict[cdx]:
-                        is_included_dict[cdx]["entry_datas"] = []
+                    if "칭찬" not in is_included_dict[cdx]:
+                        is_included_dict[cdx]["칭찬"] = []
                     is_included_dict[cdx].update(comment_row.to_dict())
                             
                     if is_included:
-                        entry_row_dict["EDX"] = edx
+                        entry_row_dict["EDX"] = str(edx)
                         entry_row_dict.update(entry_row.to_dict())
                         
-                        is_included_dict[cdx]["entry_datas"].append(entry_row_dict)
+                        # is_included_dict[cdx]["칭찬"].append(entry_row_dict)
+                        is_included_dict[cdx]["칭찬"].append("/".join(list(entry_row_dict.values())))
 
             # st.write(is_included_dict)
             
@@ -97,9 +91,32 @@ if st.session_state['submitted']:
                 filtered_data.append(temp_dict)
 
             # Pandas 데이터프레임으로 변환
-            df = pd.DataFrame(filtered_data)
-            st.data_editor(df)
+            df = pd.DataFrame(filtered_data)[["조사 실행 날짜", "서비스 일자", "방문 시간", "등록 번호", "거래 번호", "경험 코멘트", "칭찬"]]
+            # df["칭찬"] = df["칭찬"].astype(str)
             
+            duplicated_transaction_nums = find_duplicates(df["거래 번호"])
+            # df.loc[df[len(df["칭찬"]) == 0], "칭찬"] = np.nan
+            df.loc[df["거래 번호"].isin(duplicated_transaction_nums), "칭찬"] = "거래 번호 중복"
+            
+              
+            
+            
+            df_col, _, _ = st.columns([0.7, 0.2, 0.1])
+            with df_col:
+                st.data_editor(df, use_container_width=True)
+                
+
+
+
+                
+                
+                
+            # with vision_col:
+            #     rows = [st.columns(7) for i in range(len(df))]
+            #     for rdx, row in enumerate(rows):
+            #         for cdx, col in enumerate(row):
+            #             tile = col.container(border=True)
+            #             tile.write(df.iloc[rdx, cdx])
 
 
 
@@ -107,3 +124,16 @@ if st.session_state['submitted']:
 # st.session_state['submitted'] = False
 # st.session_state['entryCheckExpanded'] = True
 # st.session_state['fileUploadExpanded'] = True
+# 예제 데이터프레임 생성
+# data = {
+#     "Column 1": ["A", "B", "C", "D", "E", "F", "G", "H"],
+#     "Column 2": [1, 2, 3, 4, 5, 6, 7, 8],
+#     "Column 3": ["X", "Y", "Z", "W", "V", "U", "T", "S"],
+#     "Column 4": ["Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Eta", "Theta"],
+#     "Column 5": [True, False, True, False, True, False, True, False],
+#     "Column 6": ["😀", "😎", "🎉", "🔥", "💡", "💻", "📚", "🌟"],
+# }
+# df = pd.DataFrame(data)
+
+# st.dataframe(df)
+
