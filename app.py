@@ -32,6 +32,9 @@ with st.expander("1️⃣ **명단확인**", expanded=True):
     col1, col2 = st.columns([0.6,0.4], gap='large', vertical_alignment='bottom')
     with col1:
         entry_editor = st.data_editor(entry, use_container_width=True)
+    with col2:
+        with st.popover("도움말"):
+            st.write("(1) 텍스트를 수정한 후 → 자판을 누른 후 Enter를 눌러야 정상 반영됩니다.")
     submitted = st.button("명단 확정")
     if submitted:
         entry_editor.to_excel('./entry.xlsx', index=False)
