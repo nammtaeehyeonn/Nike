@@ -56,68 +56,33 @@ filtered_df[["조사 실행 날짜", "서비스 일자", "방문 시간", "경�
     filtered_df[["조사 실행 날짜", "서비스 일자", "방문 시간", "경험 코멘트"]].astype(str)
 
 filtered_df = filtered_df.sort_values(["거래 번호"])
-# st.write(filtered_df)
-names = entry_editor.iloc[:, -1]
-is_included_dict = dict()
-for cdx, comment_row in filtered_df.iterrows():
-    comment = comment_row["경험 코멘트"]
-    # for edx, entry_row in entry_editor.iterrows():
-    for edx, entry_row in enumerate(all_members):
-        if edx ==0:
-            continue
-        # name = entry_row['NAME']
-        name = entry_row.split(" - ")[-1]
-        entry_row_dict = dict()
-        is_included = False
-        if not (len(name) < 3):
-            if (name in comment) or (name[-2:] in comment):
-                is_included = True
-                # st.write(f"{cdx} : {comment_row.to_dict()} -> {edx} : {entry_row.to_dict()}")
-        else:
-            if (name in comment):
-                is_included = True
-                # st.write(f"{cdx} : {comment_row.to_dict()} -> {edx} : {entry_row.to_dict()}")
-                
-        if cdx not in is_included_dict:
-            is_included_dict[cdx] = {}
-        if "칭찬" not in is_included_dict[cdx]:
-            # is_included_dict[cdx]["칭찬"] = []
-            is_included_dict[cdx]["칭찬"] = ""
-        is_included_dict[cdx].update(comment_row.to_dict())
-                
-        if is_included:
-            # entry_row_dict["EDX"] = str(edx)
-            # entry_row_dict.update(entry_row.to_dict())
+for_df_dict = dict()
+for col in filtered_df.columns:
+    for_df_dict[col] = list(filtered_df[col].values)
+
+for_df_dict['칭찬'] = [[] for i in range(len(filtered_df))]
+dup_nums = find_duplicates(for_df_dict['거래 번호'])
+
+for idx, (num, comment) in enumerate(zip(for_df_dict['거래 번호'], for_df_dict['경험 코멘트'])):
+    is_included_list = []
+    if num in dup_nums:
+        is_included_list.append("거래번호 중복")
+    else:
+        for edx, entry_row in entry_editor.iterrows():
+            member_data = f"[{edx}] " + " - ".join(entry_row.values)
+            name = entry_row['NAME']
+            if not (len(name) < 3):
+                if (name in comment) or (name[-2:] in comment):
+                    is_included_list.append(member_data)
+            else:
+                if (name in comment):
+                    is_included_list.append(member_data)
+    for_df_dict['칭찬'][idx] = is_included_list
             
-            # is_included_dict[cdx]["칭찬"].append(entry_row_dict)
-            # is_included_dict[cdx]["칭찬"].append(" \r ".join(list(entry_row_dict.values())))
-            # is_included_dict[cdx]["칭찬"].append(entry_row + "\r")
-            is_included_dict[cdx]["칭찬"] += f"{entry_row} / "
-    try:
-        if is_included_dict[cdx]["칭찬"][-3:] == " / ":
-            is_included_dict[cdx]["칭찬"] = is_included_dict[cdx]["칭찬"][:-3]
-    except:
-        pass
-# st.write(is_included_dict)
+data = pd.DataFrame(for_df_dict)
+data['칭찬'] = data['칭찬'].apply(lambda x: '\n'.join(x) if isinstance(x, list) else x)
 
-
-##### 표가 아니라 container, columns로 하나하나 출력하고 entry_datas를 muitiselect로 구성하고 세션키_n 으로 저장 한 후 세션에서 개수 체크해야할 듯
-filtered_data = []
-for key, value in is_included_dict.items():
-    temp_dict = {k: v for k, v in value.items()}
-    filtered_data.append(temp_dict)
-print(is_included_dict)
-
-df = pd.DataFrame(filtered_data)[["조사 실행 날짜", "서비스 일자", "방문 시간", "등록 번호", "거래 번호", "경험 코멘트", "칭찬"]]
-gb = GridOptionsBuilder.from_dataframe(df)
-
-# gb.configure_column("경험 코멘트", 
-#                     width=400, 
-#                     minWidth=200, 
-#                     maxWidth=800,
-#                     # cellStyle={"white-space": "normal", "line-height": "1.5"},
-#                     # autoHeight=True,  # 높이를 내용에 맞게 조정
-#                     )
+gb = GridOptionsBuilder.from_dataframe(data)
 gb.configure_grid_options(
     autoSizeStrategy={
         "type": "fitGridWidth",  # 그리드 너비에 맞추는 전략
@@ -150,15 +115,15 @@ gb.configure_column("칭찬",
                     editable=True, 
                     cellEditor='agSelectCellEditor', 
                     cellEditorParams={'values': all_members },
-                    cellStyle={"white-space": "normal", "line-height": "1.5"},
+                    cellStyle={"white-space": "pre-wrap", "line-height": "1.5"},
                     autoHeight=True,  # 높이를 내용에 맞게 조정
                     ) 
 
 
 grid_options = gb.build()
 
-AgGrid(
-    df,
+ag_data = AgGrid(
+    data,
     gridOptions=grid_options,
     theme="alpine",  # 테마
     enable_enterprise_modules=False,
@@ -166,27 +131,22 @@ AgGrid(
     allow_unsafe_jscode=True,  # HTML 사용 허용
 )
 
-################################################################################################
+modified_data = ag_data["data"]
+# st.dataframe(modified_data, width=1500)
 
-# html_table = df.to_html(index=False, escape=False)
+print(pd.DataFrame(modified_data))
 
-# # HTML 스타일 추가
-# styled_html = f"""
-# <style>
-#     table {{
-#         width: 80%;
-#         border-collapse: collapse;
-#     }}
-#     th, td {{
-#         border: 1px solid #ddd;
-#         text-align: center;
-#         padding: 8px;
-#     }}
-#     th {{
-#         background-color: #f2f2f2;
-#     }}
-# </style>
-# {html_table}
-# """
-
-# st.markdown(styled_html, unsafe_allow_html=True)
+modified_df = pd.DataFrame(modified_data)
+confirm_btn = st.button("확정")
+st_stop = False
+if confirm_btn:
+    for rdx, row in modified_df.iterrows():
+        count_brackets = sum(s.count("[") for s in row['칭찬'])
+        if count_brackets > 1:
+            st_stop=True
+            st.warning(f"{rdx}번 째 행의 칭찬글이 2개 이상이에요.")
+    if st_stop:
+        st.stop()
+    else:
+        st.success("GOOD!!!")
+        
