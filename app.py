@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
 from collections import Counter
+from datetime import datetime
 import re
 
 def find_duplicates(lst):
@@ -24,12 +25,13 @@ if 'confirmed' not in st.session_state:
 if 'alert_txt' not in st.session_state:
     st.session_state['alert_txt'] = ""
     
-# Expander for 명단확인
 with st.expander("1️⃣ **명단확인**", expanded=True):
     st.divider()
     entry = pd.read_excel("./entry.xlsx", engine='openpyxl')
     entry.index = range(1, len(entry) + 1)
-    entry_editor = st.data_editor(entry)
+    col1, col2 = st.columns([0.6,0.4], gap='large', vertical_alignment='bottom')
+    with col1:
+        entry_editor = st.data_editor(entry, use_container_width=True)
     submitted = st.button("명단 확정")
     if submitted:
         entry_editor.to_excel('./entry.xlsx', index=False)
@@ -44,10 +46,19 @@ if st.session_state['submitted']:
         st.divider()
         uploaded_file = st.file_uploader(" ")
         if uploaded_file is not None:
+            filename = uploaded_file.name
+            today_date_yymmdd = datetime.now().strftime("%y%m%d")
+
             st.write(" ")
+            with st.popover("도움말"):
+                st.write("(1) 거래번호가 중복되는 칭찬글들은 붉은색으로 칠해지며 최종 집계에서 제외됩니다.")
+                st.write("(2) 하나의 칭찬글에 2명 이상일 경우 회색바탕으로 칠해져있습니다.")
+                st.write("&nbsp;&nbsp;&nbsp;&nbsp;(2-1) 하나의 칭찬글에는 한명의 데이터만 삽입되어야 최종 결과를 확인할 수 있습니다.")
+                st.write("(3) 언급된 이름이 없을 경우에는 공백입니다.")
+                st.write("(4) 최종 집계시에는 [거래번호중복], [공백]은 제외됩니다.")
             st.write(" ")
+            
             uploaded_df = pd.read_csv(uploaded_file)
-            # uploaded_df = pd.read_csv("./설문조사 세부 정보 - 2023년 신규 설문조사 (2).csv")
 
             filtered_df = uploaded_df[uploaded_df["경험 코멘트"].notna()].loc[:, ["조사 실행 날짜", "서비스 일자", "방문 시간", "등록 번호", "거래 번호", "경험 코멘트"]]
             filtered_df[["등록 번호", "거래 번호"]] = filtered_df[["등록 번호", "거래 번호"]].astype(int)
@@ -123,6 +134,9 @@ if st.session_state['submitted']:
                     baseStyle['backgroundColor'] = 'gray';
                     baseStyle['color'] = 'black';
                 }
+                if (params.value == "거래번호 중복"){
+                    baseStyle['color'] = 'red';
+                }
                 return baseStyle;
             }
             """)
@@ -148,7 +162,6 @@ if st.session_state['submitted']:
 
             modified_data = ag_data["data"]
 
-            print(pd.DataFrame(modified_data))
             modified_df = pd.DataFrame(modified_data)
 
             st.session_state["alert_bool"] = False
@@ -174,19 +187,17 @@ if st.session_state['confirmed']:
         final_entry['칭찬'] = counts
         col1, col2 = st.columns([0.6,0.4], gap='large', vertical_alignment='bottom')
         with col1:
-            st.dataframe(final_entry,
-                        width=900
-                        )
+            st.dataframe(final_entry, use_container_width=True)
             
         with col2:
             def convert_df(df):
-                return df.to_csv().encode("utf-8")
+                return df.to_csv(index=False).encode("utf-8")
 
             csv = convert_df(final_entry)
-
-            # st.download_button(
-            #     label="최종결과 다운로드",
-            #     data=csv,
-            #     file_name="large_df.csv",
-            #     mime="text/csv",
-            # )
+            st.download_button(
+                type="primary",
+                label="최종결과 다운로드",
+                data=csv,
+                file_name=f"{today_date_yymmdd}_{filename}.csv",
+                mime="text/csv",
+            )
