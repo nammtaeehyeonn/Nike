@@ -2,8 +2,9 @@ name: Keep Streamlit App Alive
 
 on:
   schedule:
-    - cron: '0 9 * * *'  # 매일 오전 9시 (UTC)
-    - cron: '0 21 * * *' # 매일 오후 9시 (UTC)
+    - cron: '0 9 * * *'
+    - cron: '0 21 * * *'
+  workflow_dispatch:
 
 jobs:
   keep-alive:
