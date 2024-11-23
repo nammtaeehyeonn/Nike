@@ -24,6 +24,8 @@ if 'confirmed' not in st.session_state:
     st.session_state['confirmed'] = False
 if 'alert_txt' not in st.session_state:
     st.session_state['alert_txt'] = ""
+if 'all_members' not in st.session_state:
+    st.session_state['all_members'] = []
     
 with st.expander("1️⃣ **명단확인**", expanded=True):
     st.divider()
@@ -32,17 +34,18 @@ with st.expander("1️⃣ **명단확인**", expanded=True):
     col1, col2 = st.columns([0.6,0.4], gap='large', vertical_alignment='bottom')
     with col1:
         entry_editor = st.data_editor(entry, use_container_width=True)
+        print(entry_editor.head())
     with col2:
         with st.popover("도움말"):
             st.write("(1) 텍스트를 수정한 후 → 자판을 누른 후 Enter를 눌러야 정상 반영됩니다.")
     submitted = st.button("명단 확정")
     if submitted:
-        entry_editor.to_excel('./entry.xlsx', index=False)
+        entry_editor.to_excel('./entry2.xlsx', index=False)
         st.session_state['submitted'] = True
+        st.session_state['all_members'] = [""] + [f"[{idx}] " + " - ".join(map(str, row)) for idx, row in entry_editor.iterrows()]
         st.rerun()
 
 
-all_members = [""] + [f"[{idx}] " + " - ".join(map(str, row)) for idx, row in entry_editor.iterrows()]
 
 if st.session_state['submitted']:
     with st.expander("2️⃣ **파일 업로드 및 정성평가**", expanded=True):
@@ -63,13 +66,21 @@ if st.session_state['submitted']:
             
             uploaded_df = pd.read_csv(uploaded_file)
 
-            filtered_df = uploaded_df[uploaded_df["경험 코멘트"].notna()].loc[:, ["조사 실행 날짜", "서비스 일자", "방문 시간", "등록 번호", "거래 번호", "경험 코멘트"]]
-            filtered_df[["등록 번호", "거래 번호"]] = filtered_df[["등록 번호", "거래 번호"]].astype(int)
+            # filtered_df = uploaded_df[uploaded_df["경험 코멘트"].notna()].loc[:, ["조사 실행 날짜", "서비스 일자", "방문 시간", "등록 번호", "거래 번호", "경험 코멘트"]]
+            # filtered_df[["등록 번호", "거래 번호"]] = filtered_df[["등록 번호", "거래 번호"]].astype(int)
+            # filtered_df[["조사 실행 날짜", "서비스 일자", "방문 시간", "경험 코멘트"]] = \
+            #     filtered_df[["조사 실행 날짜", "서비스 일자", "방문 시간", "경험 코멘트"]].astype(str)
+            # filtered_df = filtered_df.sort_values(["거래 번호"])
+            # filtered_df["번호"] = [i+1 for i in range(len(filtered_df))]
+            # filtered_df = filtered_df[["번호", "조사 실행 날짜", "서비스 일자", "방문 시간", "등록 번호", "거래 번호", "경험 코멘트"]]
+            
+            filtered_df = uploaded_df[uploaded_df["경험 코멘트"].notna()].loc[:, ["조사 실행 날짜", "서비스 일자", "방문 시간",  "거래 번호", "경험 코멘트"]]
+            filtered_df[["거래 번호"]] = filtered_df[["거래 번호"]].astype(int)
             filtered_df[["조사 실행 날짜", "서비스 일자", "방문 시간", "경험 코멘트"]] = \
                 filtered_df[["조사 실행 날짜", "서비스 일자", "방문 시간", "경험 코멘트"]].astype(str)
             filtered_df = filtered_df.sort_values(["거래 번호"])
             filtered_df["번호"] = [i+1 for i in range(len(filtered_df))]
-            filtered_df = filtered_df[["번호", "조사 실행 날짜", "서비스 일자", "방문 시간", "등록 번호", "거래 번호", "경험 코멘트"]]
+            filtered_df = filtered_df[["번호", "조사 실행 날짜", "서비스 일자", "방문 시간", "거래 번호", "경험 코멘트"]]
 
             for_df_dict = dict()
             for col in filtered_df.columns:
@@ -107,7 +118,7 @@ if st.session_state['submitted']:
                         {"colId": "조사 실행 날짜", "minWidth": 80, "maxWidth": 150},
                         {"colId": "서비스 일자", "minWidth": 80, "maxWidth": 150},
                         {"colId": "방문 시간", "minWidth": 80, "maxWidth": 150},
-                        {"colId": "등록 번호", "minWidth": 80, "maxWidth": 150},
+                        # {"colId": "등록 번호", "minWidth": 80, "maxWidth": 150},
                         {"colId": "거래 번호", "minWidth": 80, "maxWidth": 150},
                         {"colId": "경험 코멘트", "minWidth": 300},
                         {"colId": "칭찬", "Width": 200}
@@ -146,7 +157,7 @@ if st.session_state['submitted']:
             gb.configure_column("칭찬", 
                                 editable=True, 
                                 cellEditor='agSelectCellEditor', 
-                                cellEditorParams={'values': all_members },
+                                cellEditorParams={'values': st.session_state['all_members'] },
                                 cellStyle=cellstyle_jscode,
                                 autoHeight=True,  # 높이를 내용에 맞게 조정
                                 ) 
@@ -179,13 +190,23 @@ if st.session_state['submitted']:
                 if confirm_btn:
                     st.session_state['confirmed'] = True
                     
-    
+        else:
+            st.session_state['confirmed'] = False
+            
+            
 if st.session_state['confirmed']:
     with st.expander("3️⃣ **최종결과 확인**", expanded=True):
-        filtered_series = modified_df['칭찬'][(modified_df['칭찬'] != "거래번호 중복") & (modified_df['칭찬'] != "")]
+        # filtered_series = modified_df['칭찬'][(modified_df['칭찬'] != "거래번호 중복") & (modified_df['칭찬'] != "")]
+        filtered_series = modified_df['칭찬'][(modified_df['칭찬'] != "거래번호 중복")]
+        filtered_series = filtered_series.apply(lambda x : "무명" if not x else x)
         count_df = filtered_series.value_counts().reset_index()
-        numbers = count_df["칭찬"].apply(lambda x: int(re.search(r"\[(\d+)\]", x).group(1)))
+        print(count_df)
+        # numbers = count_df["칭찬"].apply(lambda x: int(re.search(r"\[(\d+)\]", x).group(1)))
+        numbers = count_df["칭찬"].apply(
+               lambda x: int(re.search(r"\[(\d+)\]", x).group(1)) if re.search(r"\[(\d+)\]", x) else 999
+                )
         counts = count_df["count"].tolist()
+        entry_editor.loc[999, entry_editor.columns] = ["-", "-", "-", "무명"]
         final_entry = entry_editor.loc[numbers.tolist(), :]
         final_entry['칭찬'] = counts
         col1, col2 = st.columns([0.6,0.4], gap='large', vertical_alignment='bottom')
