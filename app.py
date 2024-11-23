@@ -9,6 +9,9 @@ def find_duplicates(lst):
     counts = Counter(lst)
     return [item for item, count in counts.items() if count > 1]
 
+def convert_df(df):
+    return df.to_csv(index=False).encode("utf-8")
+
 st.set_page_config(
     page_title="옥히나이키",
     page_icon="🚩",
@@ -34,13 +37,12 @@ with st.expander("1️⃣ **명단확인**", expanded=True):
     col1, col2 = st.columns([0.6,0.4], gap='large', vertical_alignment='bottom')
     with col1:
         entry_editor = st.data_editor(entry, use_container_width=True)
-        print(entry_editor.head())
     with col2:
         with st.popover("도움말"):
             st.write("(1) 텍스트를 수정한 후 → 자판을 누른 후 Enter를 눌러야 정상 반영됩니다.")
     submitted = st.button("명단 확정")
     if submitted:
-        entry_editor.to_excel('./entry2.xlsx', index=False)
+        entry_editor.to_excel('./entry.xlsx', index=False)
         st.session_state['submitted'] = True
         st.session_state['all_members'] = [""] + [f"[{idx}] " + " - ".join(map(str, row)) for idx, row in entry_editor.iterrows()]
         st.rerun()
@@ -200,7 +202,6 @@ if st.session_state['confirmed']:
         filtered_series = modified_df['칭찬'][(modified_df['칭찬'] != "거래번호 중복")]
         filtered_series = filtered_series.apply(lambda x : "무명" if not x else x)
         count_df = filtered_series.value_counts().reset_index()
-        print(count_df)
         # numbers = count_df["칭찬"].apply(lambda x: int(re.search(r"\[(\d+)\]", x).group(1)))
         numbers = count_df["칭찬"].apply(
                lambda x: int(re.search(r"\[(\d+)\]", x).group(1)) if re.search(r"\[(\d+)\]", x) else 999
@@ -214,9 +215,6 @@ if st.session_state['confirmed']:
             st.dataframe(final_entry, use_container_width=True)
             
         with col2:
-            def convert_df(df):
-                return df.to_csv(index=False).encode("utf-8")
-
             csv = convert_df(final_entry)
             st.download_button(
                 type="primary",
