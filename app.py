@@ -29,27 +29,84 @@ if 'alert_txt' not in st.session_state:
     st.session_state['alert_txt'] = ""
 if 'all_members' not in st.session_state:
     st.session_state['all_members'] = []
-    
+
+team_sort_values = ["LEADERSHIP", "OPERATION", "STOCKROOM", "SALES1", "SALES2"]
+
+# 1️⃣ 명단 확인
 with st.expander("1️⃣ **명단확인**", expanded=True):
     st.divider()
+    # 엑셀 파일 읽기
     entry = pd.read_excel("./entry.xlsx", engine='openpyxl')
-    entry.index = range(1, len(entry) + 1)
-    col1, col2 = st.columns([0.6,0.4], gap='large', vertical_alignment='bottom')
+    entry.index = range(1, len(entry) + 1)  # 인덱스 재정렬
+    entry['SELECT'] = [True for _ in range(len(entry))]  # SELECT 컬럼 추가
+
+    # 팀 선택 옵션 설정
+    select_team_list = list(entry['TEAM'].unique())
+
+    # 컬럼 레이아웃 설정
+    col1, col2 = st.columns([0.85, 0.1], gap='large')
+
+    # 데이터 편집 UI
     with col1:
-        entry_editor = st.data_editor(entry, use_container_width=True)
+        entry_editor = st.data_editor(
+            entry,
+            column_config={
+                "TEAM": st.column_config.SelectboxColumn(
+                    "TEAM",
+                    options=select_team_list,
+                    required=True,
+                ),
+                "ENGNAME" : st.column_config.TextColumn(
+                    width='large'
+                )
+            },
+            use_container_width=True
+        )
+
+    # 추가 버튼
     with col2:
+        if st.button("추가"):
+            # 새로운 행 추가를 위해 DataFrame 생성
+            new_row = pd.DataFrame([{
+                "TEAM": select_team_list[0],  # 선택되지 않은 기본 값
+                "NAME": "이름",  # 기본 이름
+                "SELECT": True  # 기본 선택 상태
+            }])
+
+            entry = pd.concat([entry, new_row], ignore_index=True)
+            entry.to_excel('./entry.xlsx', index=False)
+            st.rerun()
+        
+    c_1, c_2, _ = st.columns([0.2, 0.2, 0.6])     
+    with c_1:
+        submitted = st.button("명단 확정")  
+        if submitted:
+            entry_editor['TEAM'] = pd.Categorical(
+                entry_editor['TEAM'],
+                categories=team_sort_values,
+                ordered=True
+            )
+
+            # TEAM 기준으로 정렬
+            entry_editor = entry_editor.sort_values(['TEAM'])
+            entry_editor = entry_editor.sort_values(by=["TEAM", "NAME"])
+            entry_editor = entry_editor[entry_editor['SELECT']]
+            entry_editor.index = range(1, len(entry_editor) + 1)  # 인덱스 재정렬
+            entry_editor.to_excel('./entry.xlsx', index=False)
+            st.session_state['submitted'] = True
+            st.session_state['all_members'] = [""] + [f"[{idx}] " + " - ".join(map(str, row)) for idx, row in entry_editor[['TEAM', 'NAME']].iterrows()]
+            # st.rerun()
+            
+    with c_2:
         with st.popover("도움말"):
             st.write("(1) 텍스트를 수정한 후 → 자판을 누른 후 Enter를 눌러야 정상 반영됩니다.")
-    submitted = st.button("명단 확정")
-    if submitted:
-        entry_editor.to_excel('./entry.xlsx', index=False)
-        st.session_state['submitted'] = True
-        st.session_state['all_members'] = [""] + [f"[{idx}] " + " - ".join(map(str, row)) for idx, row in entry_editor.iterrows()]
-        st.rerun()
+        
+
 
 
 
 if st.session_state['submitted']:
+    entry_editor = entry_editor.iloc[:, :-1]
     with st.expander("2️⃣ **파일 업로드 및 정성평가**", expanded=True):
         st.divider()
         uploaded_file = st.file_uploader(" ")
@@ -93,11 +150,13 @@ if st.session_state['submitted']:
 
             for idx, (num, comment) in enumerate(zip(for_df_dict['거래 번호'], for_df_dict['경험 코멘트'])):
                 is_included_list = []
+                comment = comment.lower()
+                comment = re.sub(r'[^\w\s가-힣]', '', comment)
                 if num in dup_nums:
                     is_included_list.append("거래번호 중복")
                 else:
                     for edx, entry_row in entry_editor.iterrows():
-                        member_data = f"[{edx}] " + " - ".join(entry_row.values)
+                        member_data = f"[{edx}] " + " - ".join(entry_row[['TEAM', 'NAME']].values)
                         name = entry_row['NAME']
                         if not (len(name) < 3):
                             if (name in comment) or (name[-2:] in comment):
@@ -105,6 +164,14 @@ if st.session_state['submitted']:
                         else:
                             if (name in comment):
                                 is_included_list.append(member_data)
+                        
+                        engname_list = [re.sub(r'[^\w\s가-힣]', '', engname.lower().strip()) for engname in entry_row['ENGNAME'].split(",")]
+                        for engname in engname_list:
+                            if engname in comment:
+                                is_included_list.append(member_data)
+                                break
+                                
+                        
                 for_df_dict['칭찬'][idx] = is_included_list
             
             data = pd.DataFrame(for_df_dict)
