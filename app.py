@@ -274,7 +274,7 @@ if st.session_state['confirmed']:
                lambda x: int(re.search(r"\[(\d+)\]", x).group(1)) if re.search(r"\[(\d+)\]", x) else 999
                 )
         counts = count_df["count"].tolist()
-        entry_editor.loc[999, entry_editor.columns] = ["-", "-", "-", "무명"]
+        entry_editor.loc[999, entry_editor.columns] = ["-", "-", "무명"]
         final_entry = entry_editor.loc[numbers.tolist(), :]
         final_entry['칭찬'] = counts
         col1, col2 = st.columns([0.6,0.4], gap='large', vertical_alignment='bottom')
