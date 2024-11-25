@@ -69,6 +69,7 @@ with st.expander("1️⃣ **명단확인**", expanded=True):
             # 새로운 행 추가를 위해 DataFrame 생성
             new_row = pd.DataFrame([{
                 "TEAM": select_team_list[0],  # 선택되지 않은 기본 값
+                "ENGNAME": "engname",  # 기본 이름
                 "NAME": "이름",  # 기본 이름
                 "SELECT": True  # 기본 선택 상태
             }])
