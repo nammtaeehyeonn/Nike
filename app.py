@@ -115,6 +115,7 @@ if st.session_state['submitted']:
             filename = uploaded_file.name
             today_date_yymmdd = datetime.now().strftime("%y%m%d")
 
+
             st.write(" ")
             with st.popover("도움말"):
                 st.write("(1) 거래번호가 중복되는 칭찬글들은 붉은색으로 칠해지며 최종 집계에서 제외됩니다.")
@@ -124,8 +125,9 @@ if st.session_state['submitted']:
                 st.write("(4) 최종 집계시에는 [거래번호중복], [공백]은 제외됩니다.")
             st.write(" ")
             
+            
             uploaded_df = pd.read_csv(uploaded_file)
-
+            uploaded_df.fillna(0, inplace=True)
             # filtered_df = uploaded_df[uploaded_df["경험 코멘트"].notna()].loc[:, ["조사 실행 날짜", "서비스 일자", "방문 시간", "등록 번호", "거래 번호", "경험 코멘트"]]
             # filtered_df[["등록 번호", "거래 번호"]] = filtered_df[["등록 번호", "거래 번호"]].astype(int)
             # filtered_df[["조사 실행 날짜", "서비스 일자", "방문 시간", "경험 코멘트"]] = \
@@ -133,8 +135,9 @@ if st.session_state['submitted']:
             # filtered_df = filtered_df.sort_values(["거래 번호"])
             # filtered_df["번호"] = [i+1 for i in range(len(filtered_df))]
             # filtered_df = filtered_df[["번호", "조사 실행 날짜", "서비스 일자", "방문 시간", "등록 번호", "거래 번호", "경험 코멘트"]]
-            
+            print(uploaded_df)
             filtered_df = uploaded_df[uploaded_df["경험 코멘트"].notna()].loc[:, ["조사 실행 날짜", "서비스 일자", "방문 시간",  "거래 번호", "경험 코멘트"]]
+            # filtered_df = uploaded_df.loc[:, ["조사 실행 날짜", "서비스 일자", "방문 시간",  "거래 번호", "경험 코멘트"]]
             filtered_df[["거래 번호"]] = filtered_df[["거래 번호"]].astype(int)
             filtered_df[["조사 실행 날짜", "서비스 일자", "방문 시간", "경험 코멘트"]] = \
                 filtered_df[["조사 실행 날짜", "서비스 일자", "방문 시간", "경험 코멘트"]].astype(str)
