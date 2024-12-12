@@ -4,6 +4,7 @@ from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
 from collections import Counter
 from datetime import datetime
 import re
+from io import StringIO
 
 def find_duplicates(lst):
     counts = Counter(lst)
@@ -23,6 +24,8 @@ st.divider()
 
 if 'submitted' not in st.session_state:
     st.session_state['submitted'] = False
+if 'uploaded_entry_action' not in st.session_state:
+    st.session_state['uploaded_entry_action'] = False
 if 'confirmed' not in st.session_state:
     st.session_state['confirmed'] = False
 if 'alert_txt' not in st.session_state:
@@ -36,86 +39,79 @@ team_sort_values = ["LEADERSHIP", "OPERATION", "STOCKROOM", "SALES1", "SALES2"]
 with st.expander("1️⃣ **명단확인**", expanded=True):
     st.divider()
     # 엑셀 파일 읽기
-    entry = pd.read_excel("./entry.xlsx", engine='openpyxl')
-    entry.index = range(1, len(entry) + 1)  # 인덱스 재정렬
-    entry['SELECT'] = [True for _ in range(len(entry))]  # SELECT 컬럼 추가
+    uploaded_entry = st.file_uploader(" ", key="uploaded_entry")
+    if uploaded_entry != None:
+        json_ver = pd.read_csv(uploaded_entry).to_json(force_ascii=False)
+        entry = pd.read_json(StringIO(json_ver))[["TEAM", "ENGNAME", "NAME"]]
+        # entry = pd.read_excel("./entry.xlsx", engine='openpyxl')
+        # entry = read_data_from_db()
+        entry.index = range(1, len(entry) + 1)  # 인덱스 재정렬
+        # entry['SELECT'] = [True for _ in range(len(entry))]  # SELECT 컬럼 추가
 
-    # 팀 선택 옵션 설정
-    select_team_list = list(entry['TEAM'].unique())
+        # 팀 선택 옵션 설정
+        select_team_list = list(entry['TEAM'].unique())
 
-    # 컬럼 레이아웃 설정
-    col1, col2 = st.columns([0.85, 0.1], gap='large')
+        # 컬럼 레이아웃 설정
+        col1, col2 = st.columns([0.85, 0.1], gap='large')
 
-    # 데이터 편집 UI
-    with col1:
-        entry_editor = st.data_editor(
-            entry,
-            column_config={
-                "TEAM": st.column_config.SelectboxColumn(
-                    "TEAM",
-                    options=select_team_list,
-                    required=True,
-                ),
-                "ENGNAME" : st.column_config.TextColumn(
-                    width='large'
-                )
-            },
-            use_container_width=True
-        )
-
-    # 추가 버튼
-    with col2:
-        if st.button("추가"):
-            # 새로운 행 추가를 위해 DataFrame 생성
-            new_row = pd.DataFrame([{
-                "TEAM": select_team_list[0],  # 선택되지 않은 기본 값
-                "ENGNAME": "engname",  # 기본 이름
-                "NAME": "이름",  # 기본 이름
-                "SELECT": True  # 기본 선택 상태
-            }])
-
-            entry = pd.concat([entry, new_row], ignore_index=True)
-            entry.to_excel('./entry.xlsx', index=False)
-            st.rerun()
-        
-    c_1, c_2, _ = st.columns([0.2, 0.2, 0.6])     
-    with c_1:
-        submitted = st.button("명단 확정")  
-        if submitted:
-            entry_editor['TEAM'] = pd.Categorical(
-                entry_editor['TEAM'],
-                categories=team_sort_values,
-                ordered=True
+        # 데이터 편집 UI
+        with col1:
+            entry_editor = st.data_editor(
+                entry,
+                column_config={
+                    "TEAM": st.column_config.SelectboxColumn(
+                        "TEAM",
+                        options=select_team_list,
+                        required=True,
+                        width='small',
+                    ),
+                    "ENGNAME" : st.column_config.TextColumn(
+                        width='large'
+                    ),
+                    "NAME" : st.column_config.TextColumn(
+                        width='small'
+                    ),
+                },
+                use_container_width=True
             )
 
-            # TEAM 기준으로 정렬
-            entry_editor = entry_editor.sort_values(['TEAM'])
-            entry_editor = entry_editor.sort_values(by=["TEAM", "NAME"])
-            entry_editor = entry_editor[entry_editor['SELECT']]
-            entry_editor.index = range(1, len(entry_editor) + 1)  # 인덱스 재정렬
-            entry_editor.to_excel('./entry.xlsx', index=False)
-            st.session_state['submitted'] = True
-            st.session_state['all_members'] = [""] + [f"[{idx}] " + " - ".join(map(str, row)) for idx, row in entry_editor[['TEAM', 'NAME']].iterrows()]
-            # st.rerun()
-            
-    with c_2:
-        with st.popover("도움말"):
-            st.write("(1) 텍스트를 수정한 후 → 자판을 누른 후 Enter를 눌러야 정상 반영됩니다.")
+        c_1, c_2, _ = st.columns([0.2, 0.2, 0.6])     
+        with c_1:
+            submitted = st.button("명단 확정")  
+            if submitted:
+                entry_editor['TEAM'] = pd.Categorical(
+                    entry_editor['TEAM'],
+                    categories=team_sort_values,
+                    ordered=True
+                )
+
+                # TEAM 기준으로 정렬
+                entry_editor = entry_editor.sort_values(['TEAM'])
+                # entry_editor = entry_editor.sort_values(by=["TEAM", "NAME"])
+                # entry_editor = entry_editor[entry_editor['SELECT']]
+                entry_editor.index = range(1, len(entry_editor) + 1)  # 인덱스 재정렬
+                # entry_editor.to_excel('./entry.xlsx', index=False)
+                st.session_state['submitted'] = True
+                # st.session_state['all_members'] = [""] + [f"[{idx}] " + " - ".join(map(str, row)) for idx, row in entry_editor[['TEAM', 'NAME']].iterrows()]
+                st.session_state['all_members'] = ["무명"] + [f"[{idx}] " + " - ".join(map(str, row)) for idx, row in entry_editor[['TEAM', 'NAME']].iterrows()]
+                # st.rerun()
+                
+        with c_2:
+            with st.popover("도움말"):
+                st.write("(1) 텍스트를 수정한 후 → 자판을 누른 후 Enter를 눌러야 정상 반영됩니다.")
         
 
 
 
 
 if st.session_state['submitted']:
-    entry_editor = entry_editor.iloc[:, :-1]
+    # entry_editor = entry_editor.iloc[:, :-1]
     with st.expander("2️⃣ **파일 업로드 및 정성평가**", expanded=True):
         st.divider()
-        uploaded_file = st.file_uploader(" ")
+        uploaded_file = st.file_uploader(" ", key="uploaded_file")
         if uploaded_file is not None:
             filename = uploaded_file.name
             today_date_yymmdd = datetime.now().strftime("%y%m%d")
-
-
             st.write(" ")
             with st.popover("도움말"):
                 st.write("(1) 거래번호가 중복되는 칭찬글들은 붉은색으로 칠해지며 최종 집계에서 제외됩니다.")
@@ -214,6 +210,9 @@ if st.session_state['submitted']:
                 if (params.value == "거래번호 중복"){
                     baseStyle['color'] = 'red';
                 }
+                if (params.value == "무명"){
+                    baseStyle['color'] = 'blue';
+                }
                 return baseStyle;
             }
             """)
@@ -240,15 +239,20 @@ if st.session_state['submitted']:
             modified_data = ag_data["data"]
 
             modified_df = pd.DataFrame(modified_data)
-
-            st.session_state["alert_bool"] = False
+            
+            st.session_state["alert_bool_1"] = False
+            st.session_state["alert_bool_2"] = False
+            
             for rdx, row in modified_df.iterrows():
                 count_brackets = sum(s.count("[") for s in row['칭찬'])
                 if count_brackets > 1:
-                    st.session_state["alert_bool"] = True
-                        
+                    st.session_state["alert_bool_1"] = True
                     
-            if not st.session_state["alert_bool"]:
+            if ("" in modified_df['칭찬'].unique()):
+                st.session_state["alert_bool_2"] = True
+
+            # if not st.session_state["alert_bool"]:
+            if (not st.session_state["alert_bool_1"]) and (not st.session_state["alert_bool_2"]):
                 confirm_btn = st.button("확정")
                 if confirm_btn:
                     st.session_state['confirmed'] = True
@@ -261,7 +265,7 @@ if st.session_state['confirmed']:
     with st.expander("3️⃣ **최종결과 확인**", expanded=True):
         # filtered_series = modified_df['칭찬'][(modified_df['칭찬'] != "거래번호 중복") & (modified_df['칭찬'] != "")]
         filtered_series = modified_df['칭찬'][(modified_df['칭찬'] != "거래번호 중복")]
-        filtered_series = filtered_series.apply(lambda x : "무명" if not x else x)
+        # filtered_series = filtered_series.apply(lambda x : "무명" if not x else x)
         count_df = filtered_series.value_counts().reset_index()
         # numbers = count_df["칭찬"].apply(lambda x: int(re.search(r"\[(\d+)\]", x).group(1)))
         numbers = count_df["칭찬"].apply(
