@@ -86,7 +86,7 @@ with st.expander("1️⃣ **명단확인**", expanded=True):
                 )
 
                 # TEAM 기준으로 정렬
-                entry_editor = entry_editor.sort_values(['TEAM'])
+                # entry_editor = entry_editor.sort_values(['TEAM'])
                 # entry_editor = entry_editor.sort_values(by=["TEAM", "NAME"])
                 # entry_editor = entry_editor[entry_editor['SELECT']]
                 entry_editor.index = range(1, len(entry_editor) + 1)  # 인덱스 재정렬
