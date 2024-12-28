@@ -275,8 +275,12 @@ if st.session_state['submitted']:
                             st.info("중복 칭찬이 존재합니다.")
                         if st.session_state["alert_bool_2"]:
                             st.info("공란이 존재합니다.")
-                        
-        else:
+                        # img_col1, img_col2 = st.columns([0.5, 0.5])
+                        # with img_col1:
+                        #     st.write("직원을 선택하고 셀렉트박스의 ▼ 버튼이 존재하면 적용이 안")
+                        # with img_col2:
+                        #     st.image("./selectbox.png")
+        else:   
             st.session_state['confirmed'] = False
             
             
