@@ -266,10 +266,10 @@ if st.session_state['submitted']:
                         st.session_state["alert_bool_2"] = True
                         
                     if (not st.session_state["alert_bool_1"]) and (not st.session_state["alert_bool_2"]):
-                        st.write("submitted")    
+                        # st.write("submitted")    
                         st.session_state['confirmed'] = True
                     else:
-                        st.write("no!!")    
+                        # st.write("no!!")    
                         st.session_state['confirmed'] = False
                         if st.session_state["alert_bool_1"]:
                             st.info("중복 칭찬이 존재합니다.")
